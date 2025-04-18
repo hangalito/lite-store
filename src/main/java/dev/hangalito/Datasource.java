@@ -1,8 +1,12 @@
 package dev.hangalito;
 
+import dev.hangalito.annotations.Key;
+
 import java.io.*;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class Datasource<T extends Serializable, ID extends Serializable & Comparable<ID>> {
 
@@ -39,7 +43,7 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
         }
     }
 
-    public void save(T entity, ID key) {
+    public void save(T entity) {
         if (file == null) {
             throw new IllegalStateException("Datasource not initialized");
         }
@@ -47,7 +51,7 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
             byte[] bytes = Serializer.serialize(entity);
             raf.seek(raf.length());
             Index index = new Index(bytes.length, raf.getFilePointer());
-            this.index.put(key, index);
+            this.index.put(extractKey(entity), index);
             saveIndex();
             raf.write(bytes, 0, bytes.length);
         } catch (IOException e) {
@@ -64,13 +68,13 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
         }
     }
 
-    public synchronized T load(ID key) {
+    public synchronized Optional<T> load(ID key) {
         if (file == null) {
             throw new IllegalStateException("Datasource not initialized");
         }
 
         if (!index.containsKey(key)) {
-            return null;
+            return Optional.empty();
         }
 
         try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
@@ -82,13 +86,31 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
             try (ByteArrayInputStream input = new ByteArrayInputStream(bytes)) {
                 try (ObjectInputStream stream = new ObjectInputStream(input)) {
                     var object = stream.readObject();
-                    return (T) object;
+                    return Optional.of((T) object);
                 }
             }
         } catch (IOException | ClassNotFoundException e) {
             System.err.println("Unexpected exception: " + e.getLocalizedMessage());
             throw new RuntimeException(e);
         }
+    }
+
+    private ID extractKey(T entity) {
+        Field[] fields = entity.getClass().getDeclaredFields();
+        for (Field field : fields) {
+            boolean isAnnotated = field.isAnnotationPresent(Key.class);
+            System.out.println("verifying field " + field);
+            if (isAnnotated) {
+                field.setAccessible(true);
+                try {
+                    Object value = field.get(entity);
+                    return (ID) value;
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        return null;
     }
 
 }
