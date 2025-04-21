@@ -7,7 +7,7 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
 
-@Storage("customer")
+@Storage(value = "customer")
 public class Customer implements Serializable {
 
     @Serial
