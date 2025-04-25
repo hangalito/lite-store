@@ -6,12 +6,14 @@ import dev.hangalito.annotations.Storage;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Storage("customer")
 public class Customer implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
+    private static final AtomicInteger COUNTER = new AtomicInteger(0);
 
     @Key
     private Integer id;
@@ -22,6 +24,10 @@ public class Customer implements Serializable {
         this.id = id;
         this.name = name;
         this.email = email;
+    }
+
+    public Customer(String name, String email) {
+        this(COUNTER.incrementAndGet(), name, email);
     }
 
     public Integer getId() {

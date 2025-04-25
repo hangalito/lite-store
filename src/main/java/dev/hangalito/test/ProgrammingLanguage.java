@@ -1,11 +1,15 @@
 package dev.hangalito.test;
 
+import dev.hangalito.annotations.Key;
+import dev.hangalito.annotations.Storage;
+
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@Storage
 public record ProgrammingLanguage(
-        Integer id,
+        @Key Integer id,
         String name,
         Double rating
 ) implements Serializable {
