@@ -4,13 +4,13 @@ import dev.hangalito.annotations.Key;
 import dev.hangalito.annotations.Storage;
 import dev.hangalito.exceptions.DatasourceNotInitializedException;
 import dev.hangalito.exceptions.NoKeyDefinedException;
+import dev.hangalito.exceptions.NoSuchIndexException;
 import dev.hangalito.exceptions.UnsupportedStorageException;
 
 import java.io.*;
 import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @SuppressWarnings({"ResultOfMethodCallIgnored", "unchecked"})
@@ -112,6 +112,76 @@ public final class Datasource<E extends Serializable, K extends Serializable & C
         } catch (IOException | UnsupportedStorageException | NoKeyDefinedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void index(String fieldName) throws NoSuchFieldException, DatasourceNotInitializedException, IOException {
+        isInitialized();
+        Field field = entityClass.getDeclaredField(fieldName);
+        Map<Object, List<E>> collected = fetch().collect(Collectors.groupingBy(entity -> {
+            try {
+                field.setAccessible(true);
+                return field.get(entity);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        }));
+
+        Map<Object, List<Index>> indexMap = new HashMap<>();
+
+        collected.forEach((key, index) -> {
+            index.forEach(entity -> {
+                try {
+                    K k = extractKey(entity);
+                    Index i = storageIndex.get(k);
+                    indexMap.computeIfAbsent(key, (ignored) -> new ArrayList<>());
+                    indexMap.computeIfPresent(key, (ignored, data) -> {
+                        data.add(i);
+                        return data;
+                    });
+                } catch (NoKeyDefinedException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        });
+
+        File parent = LocationService.getInstance().getAsFile();
+        File file = new File(parent, entityClass.getName() + "#" + fieldName + ".idx");
+        if (!file.exists()) {
+            file.createNewFile();
+        }
+        try (OutputStream output = new FileOutputStream(file)) {
+            try (ObjectOutputStream stream = new ObjectOutputStream(output)) {
+                stream.writeObject(collected);
+            }
+        }
+    }
+
+    public List<E> where(String field, Object value) throws DatasourceNotInitializedException, NoSuchIndexException {
+        isInitialized();
+        Map<Object, List<? extends E>> indexMap = new HashMap<>();
+
+        File file = new File(LocationService.getInstance().getAsFile(), entityClass.getName() + "#" + field + ".idx");
+        if (!file.exists()) {
+            throw new NoSuchIndexException("No index created for field " + field);
+        }
+
+        try (InputStream input = new FileInputStream(file)) {
+            try (ObjectInputStream stream = new ObjectInputStream(input)) {
+                var read = stream.readObject();
+                if (read instanceof Map<?, ?>) {
+                    indexMap.putAll((Map<?, ? extends List<? extends E>>) read);
+                }
+            }
+        } catch (IOException | ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        List<E> list = new ArrayList<>();
+        if (indexMap.containsKey(value)) {
+            list.addAll(indexMap.get(value));
+        }
+        return list;
     }
 
 
