@@ -13,7 +13,7 @@ public interface Repository<E, K> {
 
     void update(K key, E entity) throws Exception;
 
-    default <C extends Collection<E>> void saveAll(C collection) throws Exception {
+    default <C extends Collection<? extends E>> void saveAll(C collection) throws Exception {
         for (E e : collection) {
             save(e);
         }

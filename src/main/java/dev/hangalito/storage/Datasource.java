@@ -99,6 +99,7 @@ public final class Datasource<E extends Serializable, K extends Serializable & C
             if (index == null) {
                 throw new NoKeyDefinedException();
             }
+
             raf.seek(index.pointer());
             byte[] buff = Serializer.serialize(entity);
             raf.write(buff);
@@ -106,6 +107,7 @@ public final class Datasource<E extends Serializable, K extends Serializable & C
             Index newIndex = index.newSize(buff.length);
             storageIndex.remove(key);
             storageIndex.put(extractKey(entity), newIndex);
+
             updateIndex();
         } catch (IOException | UnsupportedStorageException | NoKeyDefinedException e) {
             throw new RuntimeException(e);

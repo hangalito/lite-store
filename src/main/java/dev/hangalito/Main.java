@@ -1,7 +1,7 @@
 package dev.hangalito;
 
+import dev.hangalito.exceptions.DatasourceNotInitializedException;
 import dev.hangalito.storage.Datasource;
-import dev.hangalito.storage.Index;
 import dev.hangalito.test.ProgrammingLanguage;
 
 import java.util.List;
