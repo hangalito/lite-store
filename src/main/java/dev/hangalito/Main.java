@@ -1,43 +1,27 @@
 package dev.hangalito;
 
-import dev.hangalito.storage.Datasource;
+import dev.hangalito.test.Car;
+import dev.hangalito.test.Customer;
 import dev.hangalito.test.ProgrammingLanguage;
 
+import java.lang.reflect.Field;
 import java.util.List;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        var languages = List.of(
-                new ProgrammingLanguage("Java", 5d),
-                new ProgrammingLanguage("Kotlin", 4d),
-                new ProgrammingLanguage("Java", 4.),
-                new ProgrammingLanguage("Java", .5),
-                new ProgrammingLanguage("Java", 3.5),
-                new ProgrammingLanguage("Java", 4),
-                new ProgrammingLanguage("Java", 5d),
-                new ProgrammingLanguage("Java", 5d),
-                new ProgrammingLanguage("C", 3.5),
-                new ProgrammingLanguage("C++", 3d),
-                new ProgrammingLanguage("C#", 2d),
-                new ProgrammingLanguage("Rust", 4d),
-                new ProgrammingLanguage("Dart", 4d),
-                new ProgrammingLanguage("JavaScript", 4d),
-                new ProgrammingLanguage("JavaScript", 3.5),
-                new ProgrammingLanguage("JavaScript", 4.5),
-                new ProgrammingLanguage("JavaScript", 4d),
-                new ProgrammingLanguage("JavaScript", 2.5),
-                new ProgrammingLanguage("CSS", 1d),
-                new ProgrammingLanguage("HTML", 4d),
-                new ProgrammingLanguage("HTML", 2d),
-                new ProgrammingLanguage("HTML", 1d),
-                new ProgrammingLanguage("Groovy", 2d),
-                new ProgrammingLanguage("Groovy", 1d)
+        var cars = List.of(
+                new Car(1, "Toyota", "Rav-4"),
+                new Car(2, "Toyota", "Pagero"),
+                new Car(3, "Toyota", "Starlet"),
+                new Car(4, "Hyundai", "Elantra"),
+                new Car(5, "Hyundai", "Accent"),
+                new Car(6, "Hyundai", "Santa Fé"),
+                new Car(7, "Nissan", "Patrol")
         );
-        Datasource<ProgrammingLanguage, Integer> ds = new Datasource<>();
-        ds.init(ProgrammingLanguage.class);
-
-        String lang = "Java";
-        System.out.println("Searching for the programming language " + lang);
-        ds.where("name", lang).forEach(System.out::println);
+        Datasource<Car, Integer> datasource = new Datasource<>(LocationService.getInstance());
+        datasource.init(Car.class);
+        datasource.index("brand");
+        var toyotas = datasource.findBy("brand", "Toyota");
+        toyotas.forEach(System.out::println);
     }
 }

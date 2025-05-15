@@ -8,7 +8,7 @@ import java.io.Serializable;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@Storage("customer")
+@Storage(value = "customer")
 public class Customer implements Serializable {
 
     @Serial
