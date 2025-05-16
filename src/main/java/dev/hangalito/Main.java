@@ -1,10 +1,8 @@
 package dev.hangalito;
 
+import dev.hangalito.storage.Datasource;
 import dev.hangalito.test.Car;
-import dev.hangalito.test.Customer;
-import dev.hangalito.test.ProgrammingLanguage;
 
-import java.lang.reflect.Field;
 import java.util.List;
 
 public class Main {
@@ -18,10 +16,20 @@ public class Main {
                 new Car(6, "Hyundai", "Santa Fé"),
                 new Car(7, "Nissan", "Patrol")
         );
-        Datasource<Car, Integer> datasource = new Datasource<>(LocationService.getInstance());
+        Datasource<Car, Integer> datasource = new Datasource<>();
         datasource.init(Car.class);
-        datasource.index("brand");
-        var toyotas = datasource.findBy("brand", "Toyota");
-        toyotas.forEach(System.out::println);
+
+        var hyundai = datasource.findBy("brand", "Hyundai");
+        var nissan = datasource.findBy("brand", "Nissan");
+        var toyota = datasource.findBy("brand", "Toyota");
+
+        System.out.println("Hyundai cars:");
+        hyundai.forEach(System.out::println);
+        System.out.println();
+        System.out.println("Nissan cars:");
+        nissan.forEach(System.out::println);
+        System.out.println();
+        System.out.println("Toyota cars:");
+        toyota.forEach(System.out::println);
     }
 }

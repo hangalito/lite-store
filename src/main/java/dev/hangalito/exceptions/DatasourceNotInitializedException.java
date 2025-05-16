@@ -1,6 +1,7 @@
 package dev.hangalito.exceptions;
 
 public class DatasourceNotInitializedException extends Exception {
+
     public DatasourceNotInitializedException() {
         super("Datasource wasn't properly initialized");
     }
@@ -12,4 +13,5 @@ public class DatasourceNotInitializedException extends Exception {
     public DatasourceNotInitializedException(Throwable cause) {
         super(cause);
     }
+
 }

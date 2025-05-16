@@ -40,7 +40,7 @@ public class Pet implements Serializable {
 
 ```java
 import dev.hangalito.LocationService;
-import dev.hangalito.Datasource;
+import dev.hangalito.storage.Datasource;
 
 void main() {
     Datasource<Pet, String> ds = new Datasource<>(LocationService.getInstance());
@@ -50,7 +50,7 @@ void main() {
     ds.save(new Pet("1", "Rex", 4));
 
     // Loads the entity
-    Optional<Pet> optional = ds.load("1");
+    Optional<Pet> optional = ds.findByIndex("1");
     // ... work on optional
 
     // List all

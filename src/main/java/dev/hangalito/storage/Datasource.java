@@ -1,278 +1,297 @@
 package dev.hangalito.storage;
 
 import dev.hangalito.annotations.Key;
-import dev.hangalito.annotations.Storage;
-import dev.hangalito.exceptions.DatasourceNotInitializedException;
-import dev.hangalito.exceptions.NoKeyDefinedException;
 import dev.hangalito.exceptions.NoSuchIndexException;
 import dev.hangalito.exceptions.UnsupportedStorageException;
 
 import java.io.*;
 import java.lang.reflect.Field;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-@SuppressWarnings({"ResultOfMethodCallIgnored", "unchecked"})
-public final class Datasource<E extends Serializable, K extends Serializable & Comparable<K>> implements Repository<E, K> {
+@SuppressWarnings({"unchecked"})
+public class Datasource<T extends Serializable, ID extends Serializable & Comparable<ID>> {
 
-    private volatile Class<E> entityClass;
-    private volatile File tablefile;
-    private volatile File indexfile;
-    private volatile Map<K, Index> storageIndex;
+    /// Location service instance
+    private final LocationService service;
 
+    /// The index of saved {T} entities
+    private Map<ID, Index> index;
+
+    ///  The class type of the entity
+    private Class<T> table;
+
+    /// The file storing the actual data
+    private File file;
+
+    /**
+     * Creates a new {@link Datasource} instance.
+     */
     public Datasource() {
+        this.service = LocationService.getInstance();
     }
 
-    @Override
-    public Stream<E> fetch() throws DatasourceNotInitializedException {
-        isInitialized();
-        Stream.Builder<E> builder = Stream.builder();
-        storageIndex.values().forEach(index -> {
-            long position = index.pointer();
-            int size = index.size();
-            byte[] buff = new byte[size];
+    /**
+     * Initializes this datasource.
+     *
+     * @param entityClass The class type of the entity dealt by this datasource.
+     */
+    public void init(Class<T> entityClass) {
+        this.table = entityClass;
+        file = new File(service.getAsFile(), entityClass.getName() + ".dat");
 
-            try (RandomAccessFile raf = new RandomAccessFile(tablefile, "r")) {
-                raf.seek(position);
-                raf.read(buff, 0, size);
+        try (InputStream input = new FileInputStream(service.getAsIndex(entityClass.getName()))) {
+            if (input.available() > 0) {
+                ObjectInputStream stream = new ObjectInputStream(input);
+                this.index = (Map<ID, Index>) stream.readObject();
+                stream.close();
+            } else {
+                this.index = new HashMap<>();
+            }
+        } catch (IOException | ClassNotFoundException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    /**
+     * Retrieves all saved entities into the storage.
+     *
+     * @return The saved entities.
+     */
+    public List<T> findAll() {
+        if (index == null || file == null) {
+            throw new IllegalStateException("Datasource not initialized");
+        }
+
+        List<T> entities = new ArrayList<>();
+        index.values().forEach(index -> {
+            try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+                byte[] buff = new byte[index.size()];
+                raf.seek(index.pointer());
+                raf.read(buff, 0, index.size());
+                try (ByteArrayInputStream input = new ByteArrayInputStream(buff)) {
+                    try (ObjectInputStream stream = new ObjectInputStream(input)) {
+                        entities.add((T) stream.readObject());
+                    } catch (ClassNotFoundException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-
-            try {
-                E entity = deserialize(buff);
-                builder.add(entity);
-            } catch (UnsupportedStorageException e) {
-                throw new RuntimeException(e);
-            }
         });
-        return builder.build();
+
+        return entities;
     }
 
-    @Override
-    public Optional<E> findByKey(K key) throws DatasourceNotInitializedException, UnsupportedStorageException {
-        isInitialized();
-        if (!storageIndex.containsKey(key)) {
-            return Optional.empty();
+    /**
+     * Saves an entity into the storage.
+     *
+     * @param entity The entity to be stored.
+     */
+    public void save(T entity) {
+        if (file == null) {
+            throw new IllegalStateException("Datasource not initialized");
         }
 
-        try (RandomAccessFile raf = new RandomAccessFile(tablefile, "r")) {
-            Index index = storageIndex.get(key);
-            if (index == null) {
-                return Optional.empty();
-            }
-            raf.seek(index.pointer());
-            byte[] buff = new byte[index.size()];
-            raf.read(buff);
-            return Optional.of(deserialize(buff));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public synchronized void save(E entity) throws DatasourceNotInitializedException, NoKeyDefinedException {
-        isInitialized();
-        K key = extractKey(entity);
-        try (RandomAccessFile raf = new RandomAccessFile(tablefile, "rw")) {
-            long pointer = raf.length();
-            byte[] buff = Serializer.serialize(entity);
-            int size = buff.length;
-
-            raf.seek(pointer);
-            raf.write(buff);
-
-            Index index = new Index(size, pointer);
-            storageIndex.put(key, index);
-            updateIndex();
+        try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
+            byte[] bytes = Serializer.serialize(entity);
+            raf.seek(raf.length());
+            Index index = new Index(bytes.length, raf.getFilePointer());
+            this.index.put(extractKey(entity), index);
+            saveIndex();
+            raf.write(bytes, 0, bytes.length);
         } catch (IOException | UnsupportedStorageException e) {
             throw new RuntimeException(e);
         }
     }
 
-    @Override
-    public synchronized void update(K key, E entity) throws DatasourceNotInitializedException {
-        isInitialized();
-        try (RandomAccessFile raf = new RandomAccessFile(tablefile, "rw")) {
-            Index index = storageIndex.get(key);
-            if (index == null) {
-                throw new NoKeyDefinedException();
+    /**
+     * Retrieves an entity instance with a corresponding key.
+     *
+     * @param key The key of the entity to be retrieved.
+     * @return An instance of {@link T}, or {@code null} if no instance was found.
+     */
+    public synchronized Optional<T> findByIndex(ID key) {
+        if (file == null) {
+            throw new IllegalStateException("Datasource not initialized");
+        }
+
+        if (!index.containsKey(key)) {
+            return Optional.empty();
+        }
+
+        try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+            Index idx = index.get(key);
+            raf.seek(idx.pointer());
+            byte[] bytes = new byte[idx.size()];
+            raf.read(bytes, 0, idx.size());
+
+            try (ByteArrayInputStream input = new ByteArrayInputStream(bytes)) {
+                try (ObjectInputStream stream = new ObjectInputStream(input)) {
+                    var object = stream.readObject();
+                    return Optional.of((T) object);
+                }
             }
-
-            raf.seek(index.pointer());
-            byte[] buff = Serializer.serialize(entity);
-            raf.write(buff);
-
-            Index newIndex = index.newSize(buff.length);
-            storageIndex.remove(key);
-            storageIndex.put(extractKey(entity), newIndex);
-
-            updateIndex();
-        } catch (IOException | UnsupportedStorageException | NoKeyDefinedException e) {
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("Unexpected exception: " + e.getLocalizedMessage());
             throw new RuntimeException(e);
         }
     }
 
-    public void index(String fieldName) throws NoSuchFieldException, DatasourceNotInitializedException, IOException {
-        isInitialized();
-        Field field = entityClass.getDeclaredField(fieldName);
-        Map<Object, List<E>> collected = fetch().collect(Collectors.groupingBy(entity -> {
-            try {
-                field.setAccessible(true);
-                return field.get(entity);
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException(e);
-            }
-        }));
+    /**
+     * Tries to retrieve all entities with a given value of an attribute.
+     * The index of this field must be created before trying to look for.
+     *
+     * @param field The name of the field to look into.
+     * @param value The value of the attribute to group into.
+     * @return All the entities with the provided value in the field.
+     * @throws NoSuchIndexException If the field trying to access wasn't previously created.
+     */
+    public List<T> findBy(String field, Object value) throws NoSuchIndexException {
+        Map<Object, List<Index>> fieldIndex = new HashMap<>();
+        String filename = table.getName() + "#" + field;
+        File file = service.getAsIndex(filename, false);
 
-        Map<Object, List<Index>> indexMap = new HashMap<>();
-
-        collected.forEach((key, index) -> {
-            index.forEach(entity -> {
-                try {
-                    K k = extractKey(entity);
-                    Index i = storageIndex.get(k);
-                    indexMap.computeIfAbsent(key, (ignored) -> new ArrayList<>());
-                    indexMap.computeIfPresent(key, (ignored, data) -> {
-                        data.add(i);
-                        return data;
-                    });
-                } catch (NoKeyDefinedException e) {
-                    throw new RuntimeException(e);
-                }
-            });
-        });
-
-        File parent = LocationService.getInstance().getAsFile();
-        File file = new File(parent, entityClass.getName() + "#" + fieldName + ".idx");
-        if (!file.exists()) {
-            file.createNewFile();
-        }
-        try (OutputStream output = new FileOutputStream(file)) {
-            try (ObjectOutputStream stream = new ObjectOutputStream(output)) {
-                stream.writeObject(collected);
-            }
-        }
-    }
-
-    public List<E> where(String field, Object value) throws DatasourceNotInitializedException, NoSuchIndexException {
-        isInitialized();
-        Map<Object, List<? extends E>> indexMap = new HashMap<>();
-
-        File file = new File(LocationService.getInstance().getAsFile(), entityClass.getName() + "#" + field + ".idx");
-        if (!file.exists()) {
-            throw new NoSuchIndexException("No index created for field " + field);
+        if (file == null) {
+            throw new NoSuchIndexException("Index '" + field + "' not created");
         }
 
         try (InputStream input = new FileInputStream(file)) {
+            if (input.available() == 0) {
+                return Collections.emptyList();
+            }
             try (ObjectInputStream stream = new ObjectInputStream(input)) {
-                var read = stream.readObject();
-                if (read instanceof Map<?, ?>) {
-                    indexMap.putAll((Map<?, ? extends List<? extends E>>) read);
-                }
+                Object object = stream.readObject();
+                fieldIndex.putAll((Map<?, ? extends List<Index>>) object);
             }
         } catch (IOException | ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
 
-
-        List<E> list = new ArrayList<>();
-        if (indexMap.containsKey(value)) {
-            list.addAll(indexMap.get(value));
+        List<T> entities = new ArrayList<>();
+        if (fieldIndex.containsKey(value)) {
+            for (Index idx : fieldIndex.get(value)) {
+                entities.add(findByIndex(idx));
+            }
         }
-        return list;
+        return entities;
     }
 
+    /**
+     * Deletes an instance from the datasource.
+     *
+     * @param instance The instance to be deleted.
+     */
+    public void delete(T instance) {
+        ID id = extractKey(instance);
+        index.remove(id);
+        saveIndex();
+    }
 
-    private synchronized void loadIndex() {
-        try (InputStream input = new FileInputStream(indexfile)) {
-            if (input.available() > 0) {
-                try (ObjectInputStream stream = new ObjectInputStream(input)) {
-                    Object read = stream.readObject();
-                    if (read instanceof Map) {
-                        storageIndex.putAll((Map<K, Index>) read);
+    /**
+     * Create an index in a specified field of the entity.
+     *
+     * @param name The name of the entity to index.
+     * @throws NoSuchFieldException If this field wasn't found in the entity.
+     */
+    public void createIndex(String name) throws NoSuchFieldException {
+        Field field = table.getDeclaredField(name);
+        String filename = table.getName() + "#" + field.getName();
+        File file = service.getAsIndex(filename);
+        Map<Object, List<Index>> fieldIndex = new HashMap<>();
+
+        findAll().forEach(entity -> {
+            field.setAccessible(true);
+            Object index;
+
+            try {
+                index = field.get(entity);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+
+            fieldIndex.compute(index, (k, v) -> {
+                ID key = null;
+                if (v == null) {
+                    v = new ArrayList<>();
+                }
+
+
+                for (Field declaredField : entity.getClass().getDeclaredFields()) {
+                    if (declaredField.isAnnotationPresent(Key.class)) {
+                        declaredField.setAccessible(true);
+                        try {
+                            key = (ID) declaredField.get(entity);
+                            break;
+                        } catch (IllegalAccessException e) {
+                            throw new RuntimeException(e);
+                        }
                     }
                 }
+                if (key == null) {
+                    throw new IllegalStateException("No key found for this storage entity");
+                }
+                v.add(Datasource.this.index.get(key));
+
+                return v;
+            });
+
+        });
+
+        try (OutputStream output = new FileOutputStream(file)) {
+            try (ObjectOutputStream stream = new ObjectOutputStream(output)) {
+                stream.writeObject(fieldIndex);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Tries to save the in-memory index of the entities into the persistence storage.
+     */
+    private synchronized void saveIndex() {
+        try {
+            try (OutputStream output = new FileOutputStream(service.getAsIndex(table.getName()))) {
+                try (ObjectOutputStream stream = new ObjectOutputStream(output)) {
+                    stream.writeObject(index);
+                }
+            }
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    private T findByIndex(Index index) {
+        try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+            byte[] buff = new byte[index.size()];
+            raf.seek(index.pointer());
+            raf.read(buff, 0, index.size());
+            try (ByteArrayInputStream input = new ByteArrayInputStream(buff)) {
+                try (ObjectInputStream stream = new ObjectInputStream(input)) {
+                    return (T) stream.readObject();
+                }
             }
         } catch (IOException | ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private synchronized void updateIndex() {
-        try (OutputStream output = new FileOutputStream(indexfile)) {
-            try (ObjectOutputStream stream = new ObjectOutputStream(output)) {
-                stream.writeObject(storageIndex);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public synchronized void init(Class<E> c) throws IOException, UnsupportedStorageException, NoKeyDefinedException {
-        this.entityClass = c;
-        assertClass(c);
-        LocationService service = LocationService.getInstance();
-        tablefile = new File(service.getAsFile(), c.getName() + ".ser");
-        indexfile = new File(service.getAsFile(), c.getName() + ".idx");
-        storageIndex = new HashMap<>();
-        if (!tablefile.exists()) {
-            tablefile.createNewFile();
-        }
-        if (!indexfile.exists()) {
-            indexfile.createNewFile();
-        }
-        loadIndex();
-    }
-
-    private void assertClass(Class<E> eClass) throws UnsupportedStorageException, NoKeyDefinedException {
-        if (!eClass.isAnnotationPresent(Storage.class)) {
-            throw new UnsupportedStorageException("Storage entity not mapped");
-        }
-        boolean doesntHaveKey = true;
-        for (Field field : eClass.getDeclaredFields()) {
-            if (field.isAnnotationPresent(Key.class)) {
-                doesntHaveKey = false;
-                break;
-            }
-        }
-        if (doesntHaveKey) {
-            throw new NoKeyDefinedException("No key defined for this entity");
-        }
-
-    }
-
-    private E deserialize(byte[] buff) throws UnsupportedStorageException {
-        try (ByteArrayInputStream input = new ByteArrayInputStream(buff)) {
-            try (ObjectInputStream stream = new ObjectInputStream(input)) {
-                return (E) stream.readObject();
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (ClassNotFoundException e) {
-            throw new UnsupportedStorageException("Unable to load the data");
-        }
-    }
-
-    private void isInitialized() throws DatasourceNotInitializedException {
-        if (tablefile == null || indexfile == null || storageIndex == null) {
-            throw new DatasourceNotInitializedException();
-        }
-    }
-
-    private K extractKey(E entity) throws NoKeyDefinedException {
-        Field[] fields = entityClass.getDeclaredFields();
+    private ID extractKey(T entity) {
+        Field[] fields = entity.getClass().getDeclaredFields();
         for (Field field : fields) {
-            if (field.isAnnotationPresent(Key.class)) {
+            boolean isAnnotated = field.isAnnotationPresent(Key.class);
+            if (isAnnotated) {
                 field.setAccessible(true);
                 try {
-                    return (K) field.get(entity);
+                    Object value = field.get(entity);
+                    return (ID) value;
                 } catch (IllegalAccessException e) {
                     throw new RuntimeException(e);
                 }
             }
         }
-        throw new NoKeyDefinedException();
+        return null;
     }
+
 }
