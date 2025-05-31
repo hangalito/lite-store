@@ -1,5 +1,7 @@
 package dev.hangalito.exceptions;
 
+import dev.hangalito.storage.Datasource;
+
 /// Sinalizador de um índice inexistente.
 /// Esta exceção é causada nos seguintes métodos
 ///  - {@link Datasource#findBy(String, Object)}

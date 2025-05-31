@@ -1,5 +1,7 @@
 package dev.hangalito.exceptions;
 
+import dev.hangalito.storage.Datasource;
+
 /// Sinalizador de uma fonte de dados inexistente.
 /// Esta exceção serã causada quando um [Datasource] para uma classe
 /// não gerenciável.
