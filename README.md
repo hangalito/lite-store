@@ -1,5 +1,7 @@
 <div style="text-align: center;">LiteStore</div>
 ============================================================
+<div style="text-align: center; font-size: 18px">The Solution for Standalone Application Persistence</div>
+------------------------------------------------------------
 
 LiteStore is the solution for standalone application persistence. It allows you to persist your
 application-generated data on device. No SQL knowledge is required, it's all Java based.
@@ -108,11 +110,30 @@ import dev.hangalito.storage.Datasource;
 void main() {
     Datasource<User, Long> ds = new Datasource<>();
     ds.init(User.class);
-    
+
     User user = new User();
     user.setName("John");
     ds.save(user);
 
     user.setName("Dee");
+    ds.update(user.getId(), user);
 }
 ````
+
+## Deleting Data
+
+You can delete data simply by calling the `delete` method in the `Datasource` passing the instance
+you want to delete.
+
+````java
+import dev.hangalito.storage.Datasource;
+
+void main() {
+    Datasource<User, Long> ds = new Datasource<>();
+    ds.init(User.class);
+
+    ds.findByIndex(100L).ifPresent(user -> ds.delete(user));
+}
+````
+
+This code snippet retrieves the user with ID of 100 and then deletes it from the datasource.
