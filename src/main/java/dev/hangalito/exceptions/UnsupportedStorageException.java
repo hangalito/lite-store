@@ -1,5 +1,7 @@
 package dev.hangalito.exceptions;
 
+import dev.hangalito.annotations.Storable;
+
 import java.io.Serializable;
 
 public class UnsupportedStorageException extends Exception {

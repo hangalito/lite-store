@@ -1,5 +1,9 @@
 package dev.hangalito.storage;
 
+import dev.hangalito.annotations.Key;
+import dev.hangalito.exceptions.NoSuchIndexException;
+import dev.hangalito.exceptions.UnsupportedStorageException;
+
 import java.io.*;
 import java.lang.reflect.Field;
 import java.util.*;
@@ -107,7 +111,7 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
      * @param key The key of the entity to be retrieved.
      * @return An instance of {@link T}, or {@code null} if no instance was found.
      */
-    public synchronized Optional<T> findByIndex(ID key) {
+    public Optional<T> findByIndex(ID key) {
         if (file == null) {
             throw new IllegalStateException("Datasource not initialized");
         }
@@ -130,6 +134,21 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
             }
         } catch (IOException | ClassNotFoundException e) {
             System.err.println("Unexpected exception: " + e.getLocalizedMessage());
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void update(ID id, T entity) {
+        try (RandomAccessFile raf = new RandomAccessFile(this.file, "rw")) {
+            raf.seek(raf.length());
+            byte[] buffered = Serializer.serialize(entity);
+            long pointer = raf.getFilePointer();
+            Index idx = new Index(buffered.length, pointer);
+
+            raf.write(buffered, 0, buffered.length);
+            index.put(id, idx);
+            saveIndex();
+        } catch (IOException | UnsupportedStorageException e) {
             throw new RuntimeException(e);
         }
     }
@@ -246,7 +265,7 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
     /**
      * Tries to save the in-memory index of the entities into the persistence storage.
      */
-    private synchronized void saveIndex() {
+    private void saveIndex() {
         try {
             try (OutputStream output = new FileOutputStream(service.getAsIndex(table.getName()))) {
                 try (ObjectOutputStream stream = new ObjectOutputStream(output)) {
