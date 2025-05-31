@@ -1,7 +1,5 @@
 package dev.hangalito.storage;
 
-import dev.hangalito.exceptions.UnsupportedStorageException;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;

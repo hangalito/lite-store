@@ -6,7 +6,7 @@
 
     <groupId>dev.hangalito</groupId>
     <artifactId>lite-store</artifactId>
-    <version>1.0.0</version>
+    <version>1.0</version>
     <name>Lite Store</name>
 
     <developers>

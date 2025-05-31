@@ -1,75 +1,118 @@
-# LiteStore
+<div style="text-align: center;">LiteStore</div>
+============================================================
 
-LiteStore is a lightweight Java library for object persistence, designed as an alternative to SQLite. It allows developers to store and retrieve Java objects directly from the filesystem, with no need to write SQL or configure a full database engine.
+LiteStore is the solution for standalone application persistence. It allows you to persist your
+application-generated data on device. No SQL knowledge is required, it's all Java based.
 
-## Features
+# Features
 
-- Store and retrieve Java objects using simple annotations
-- No SQL or external DB required
-- Custom annotations: `@Storage` and `@Key`
-- Indexing by any field using Java reflection
-- Efficient read/write using `ObjectOutputStream` and `RandomAccessFile`
+- Data persistence
+- Data retrieval
+- Indexed retrieval
+- Data update
+- Data deletion
 
-## Getting Started
+# How it works
 
-### Requirements
+LiteStore creates a **.dat** file with the name your persisting class in the user application data
+directory. It then creates an index of these data to facilitate the retrieval of these data.
+By default, only the primary key of the storable classes are indexed but you can also create custom
+indexes for an improved and customized querying.
 
-- Java 17 or later
+# Code Examples
 
-### Installation
+## Preparing a class for storage
 
-Clone the development branch:
+To store you application data, you must annotate the classes whose instance you want to be persisted
+with the **@Storable** and the primary key with **@Key**.
 
-```bash
-git clone -b dev https://github.com/hangalito/lite-store.git
-```
+````java
+import dev.hangalito.annotations.Key;
+import dev.hangalito.annotations.Storable;
 
-## Example Usage
-
-```java
-@Storage
-public class Pet implements Serializable {
+@Storable
+public class MyClass {
     @Key
-    private String id;
-    private String name;
-    private int age;
-
-    // Constructor, getters, and setters
+    private int id;
+    // other fields
 }
-```
+````
 
-```java
-import dev.hangalito.LocationService;
+## Storing the storable instances
+
+You start by initializing the datasource after its instantiation, then you pass the instance you
+want to be persisted. Note that you must initialize the datasource before calling other methods.
+By doing so you ensure that the index is loaded and you have the correct data. Calling a
+persistence-related method (save, update, delete, findAll, and findBy) will result in
+**DatasourceNotInitializedException**
+
+````java
 import dev.hangalito.storage.Datasource;
 
 void main() {
-    Datasource<Pet, String> ds = new Datasource<>(LocationService.getInstance());
-    ds.init(Pet.class);
+    Datasource<MyClass, Integer> ds = new Datasource<>();
+    ds.init(MyClass.class);
 
-    // Save the entity
-    ds.save(new Pet("1", "Rex", 4));
-
-    // Loads the entity
-    Optional<Pet> optional = ds.findByIndex("1");
-    // ... work on optional
-
-    // List all
-    List<Pet> allPets = ds.findAll();
-
-    // Create an index on name field
-    ds.index("name");
-    List<Pet> petsNamedRex = ds.findBy("name", "Rex");
+    MyClass mc = new MyClass();
+    ds.save(mc);
 }
-```
+````
 
-## How It Works
+## Retrieving all data
 
-Objects annotated with @Storage and a @Key are serialized and saved to disk using ObjectOutputStream. A lightweight indexing mechanism stores each object's byte offset and size in the file, allowing fast access with RandomAccessFile. You can also create additional indexes based on any field using reflection.
+You can retrieve all your data by calling the *findAll* method. This method will never return null,
+if no there is no saved data it will simply return an empty list.
 
-## Project Structure
+````java
+import dev.hangalito.storage.Datasource;
 
-    Datasource<S, K>: Main API for working with stored objects
+void main() {
+    Datasource<MyClass, Integer> ds = new Datasource<>();
+    ds.init(MyClass.class);
+    List<MyClass> myClassList = ds.findAll();
+}
+````
 
-    @Storage: Marks a class as persistable
+## Creating and Retrieving by Custom Fields
 
-    @Key: Identifies the primary key field 
+To query by custom fields, say, by name on a *User* storable class, you start by creating an index
+on this field
+
+````java
+import dev.hangalito.storage.Datasource;
+
+void main() {
+    Datasource<User, Long> ds = new Datasource<>();
+    ds.init(User.class);
+    ds.createIndex("name");
+}
+````
+
+then you can query in this field the following way
+
+````java
+void main() {
+    Datasource<User, Long> ds = new Datasource<>();
+    ds.init(User.class);
+    ds.findBy("name", "John");
+}   
+````
+
+## Updating Data
+
+LiteStore also lets you update your saved instances. You can do it as shown below
+
+````java
+import dev.hangalito.storage.Datasource;
+
+void main() {
+    Datasource<User, Long> ds = new Datasource<>();
+    ds.init(User.class);
+    
+    User user = new User();
+    user.setName("John");
+    ds.save(user);
+
+    user.setName("Dee");
+}
+````
