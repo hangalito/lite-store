@@ -1,7 +1,5 @@
-<div style="text-align: center;">LiteStore</div>
+LiteStore
 ============================================================
-<div style="text-align: center; font-size: 18px">The Solution for Standalone Application Persistence</div>
-------------------------------------------------------------
 
 LiteStore is the solution for standalone application persistence. It allows you to persist your
 application-generated data on device. No SQL knowledge is required, it's all Java based.
