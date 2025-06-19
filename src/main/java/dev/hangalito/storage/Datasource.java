@@ -1,6 +1,7 @@
 package dev.hangalito.storage;
 
 import dev.hangalito.annotations.Key;
+import dev.hangalito.annotations.Storable;
 import dev.hangalito.exceptions.NoSuchIndexException;
 import dev.hangalito.exceptions.UnsupportedStorageException;
 
@@ -35,7 +36,9 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
      *
      * @param entityClass The class type of the entity dealt by this datasource.
      */
-    public void init(Class<T> entityClass) {
+    public void init(Class<T> entityClass) throws UnsupportedStorageException {
+        verifyAnnotations(entityClass);
+
         this.table = entityClass;
         file = new File(service.getAsFile(), entityClass.getName() + ".dat");
 
@@ -96,10 +99,12 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
         try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
             byte[] bytes = Serializer.serialize(entity);
             raf.seek(raf.length());
-            Index index = new Index(bytes.length, raf.getFilePointer());
-            this.index.put(extractKey(entity), index);
-            saveIndex();
+            Index _index = new Index(bytes.length, raf.getFilePointer());
+
             raf.write(bytes, 0, bytes.length);
+
+            this.index.put(extractKey(entity), _index);
+            saveIndex();
         } catch (IOException | UnsupportedStorageException e) {
             throw new RuntimeException(e);
         }
@@ -111,7 +116,7 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
      * @param key The key of the entity to be retrieved.
      * @return An instance of {@link T}, or {@code null} if no instance was found.
      */
-    public Optional<T> findByIndex(ID key) {
+    public Optional<T> findById(ID key) {
         if (file == null) {
             throw new IllegalStateException("Datasource not initialized");
         }
@@ -186,7 +191,7 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
         List<T> entities = new ArrayList<>();
         if (fieldIndex.containsKey(value)) {
             for (Index idx : fieldIndex.get(value)) {
-                entities.add(findByIndex(idx));
+                entities.add(getFromIndex(idx));
             }
         }
         return entities;
@@ -225,31 +230,33 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
                 throw new RuntimeException(e);
             }
 
-            fieldIndex.compute(index, (k, v) -> {
-                ID key = null;
-                if (v == null) {
-                    v = new ArrayList<>();
-                }
-
-
-                for (Field declaredField : entity.getClass().getDeclaredFields()) {
-                    if (declaredField.isAnnotationPresent(Key.class)) {
-                        declaredField.setAccessible(true);
-                        try {
-                            key = (ID) declaredField.get(entity);
-                            break;
-                        } catch (IllegalAccessException e) {
-                            throw new RuntimeException(e);
+            fieldIndex.compute(
+                    index, (k, v) -> {
+                        ID key = null;
+                        if (v == null) {
+                            v = new ArrayList<>();
                         }
-                    }
-                }
-                if (key == null) {
-                    throw new IllegalStateException("No key found for this storage entity");
-                }
-                v.add(Datasource.this.index.get(key));
 
-                return v;
-            });
+
+                        for (Field declaredField : entity.getClass().getDeclaredFields()) {
+                            if (declaredField.isAnnotationPresent(Key.class)) {
+                                declaredField.setAccessible(true);
+                                try {
+                                    key = (ID) declaredField.get(entity);
+                                    break;
+                                } catch (IllegalAccessException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+                        }
+                        if (key == null) {
+                            throw new IllegalStateException("No key found for this storage entity");
+                        }
+                        v.add(Datasource.this.index.get(key));
+
+                        return v;
+                    }
+            );
 
         });
 
@@ -277,7 +284,7 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
         }
     }
 
-    private T findByIndex(Index index) {
+    private T getFromIndex(Index index) {
         try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
             byte[] buff = new byte[index.size()];
             raf.seek(index.pointer());
@@ -307,6 +314,20 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
             }
         }
         return null;
+    }
+
+    private void verifyAnnotations(Class<T> entity) throws UnsupportedStorageException {
+        if (!entity.isAnnotationPresent(Storable.class)) {
+            throw new UnsupportedStorageException("Esta entidade não pode ser serializada");
+        }
+
+        Field[] fields = entity.getDeclaredFields();
+        for (Field field : fields) {
+            if (field.isAnnotationPresent(Key.class)) {
+                return;
+            }
+        }
+        throw new UnsupportedStorageException("Nenhuma chave encontrada para esta entidade");
     }
 
 }

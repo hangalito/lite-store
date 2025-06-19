@@ -130,7 +130,7 @@ void main() {
     Datasource<User, Long> ds = new Datasource<>();
     ds.init(User.class);
 
-    ds.findByIndex(100L).ifPresent(user -> ds.delete(user));
+    ds.findById(100L).ifPresent(user -> ds.delete(user));
 }
 ````
 

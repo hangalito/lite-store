@@ -10,4 +10,8 @@ public class UnsupportedStorageException extends Exception {
                 "Make sure to annotate it with " + Storable.class.getName() +
                 " and implement " + Serializable.class.getName() + " interface");
     }
+
+    public UnsupportedStorageException(String message) {
+        super(message);
+    }
 }
