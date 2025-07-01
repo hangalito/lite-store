@@ -1,4 +1,4 @@
-module dev.hangalit.litestore {
+module dev.hangalito.litestore {
     requires java.base;
 
     exports dev.hangalito.litestore.annotations;
