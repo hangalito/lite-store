@@ -1,4 +1,4 @@
-package dev.hangalito.annotations;
+package dev.hangalito.litestore.annotations;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;

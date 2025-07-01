@@ -1,9 +1,10 @@
-package dev.hangalito.storage;
+package dev.hangalito.litestore;
 
-import dev.hangalito.annotations.Key;
-import dev.hangalito.annotations.Storable;
-import dev.hangalito.exceptions.NoSuchIndexException;
-import dev.hangalito.exceptions.UnsupportedStorageException;
+import dev.hangalito.litestore.annotations.Key;
+import dev.hangalito.litestore.annotations.Storable;
+import dev.hangalito.litestore.engine.*;
+import dev.hangalito.litestore.exceptions.NoSuchIndexException;
+import dev.hangalito.litestore.exceptions.UnsupportedStorageException;
 
 import java.io.*;
 import java.lang.reflect.Field;

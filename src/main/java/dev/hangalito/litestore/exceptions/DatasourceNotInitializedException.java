@@ -1,6 +1,6 @@
-package dev.hangalito.exceptions;
+package dev.hangalito.litestore.exceptions;
 
-import dev.hangalito.storage.Datasource;
+import dev.hangalito.litestore.Datasource;
 
 /// Sinalizador de uma fonte de dados inexistente.
 /// Esta exceção serã causada quando um [Datasource] para uma classe

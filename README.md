@@ -27,14 +27,11 @@ To store you application data, you must annotate the classes whose instance you 
 with the **@Storable** and the primary key with **@Key**.
 
 ````java
-import dev.hangalito.annotations.Key;
-import dev.hangalito.annotations.Storable;
-
 @Storable
 public class MyClass {
     @Key
     private int id;
-    // other fields
+    // ...
 }
 ````
 
@@ -47,15 +44,11 @@ persistence-related method (save, update, delete, findAll, and findBy) will resu
 **DatasourceNotInitializedException**
 
 ````java
-import dev.hangalito.storage.Datasource;
+Datasource<MyClass, Integer> ds = new Datasource<>();
+ds.init(MyClass.class);
 
-void main() {
-    Datasource<MyClass, Integer> ds = new Datasource<>();
-    ds.init(MyClass.class);
-
-    MyClass mc = new MyClass();
-    ds.save(mc);
-}
+MyClass mc = new MyClass();
+ds.save(mc);
 ````
 
 ## Retrieving all data
@@ -64,13 +57,9 @@ You can retrieve all your data by calling the *findAll* method. This method will
 if no there is no saved data it will simply return an empty list.
 
 ````java
-import dev.hangalito.storage.Datasource;
-
-void main() {
-    Datasource<MyClass, Integer> ds = new Datasource<>();
-    ds.init(MyClass.class);
-    List<MyClass> myClassList = ds.findAll();
-}
+Datasource<MyClass, Integer> ds = new Datasource<>();
+ds.init(MyClass.class);
+List<MyClass> myClassList = ds.findAll();
 ````
 
 ## Creating and Retrieving by Custom Fields
@@ -79,23 +68,17 @@ To query by custom fields, say, by name on a *User* storable class, you start by
 on this field
 
 ````java
-import dev.hangalito.storage.Datasource;
-
-void main() {
-    Datasource<User, Long> ds = new Datasource<>();
-    ds.init(User.class);
-    ds.createIndex("name");
-}
+Datasource<User, Long> ds = new Datasource<>();
+ds.init(User.class);
+ds.createIndex("name");
 ````
 
 then you can query in this field the following way
 
 ````java
-void main() {
-    Datasource<User, Long> ds = new Datasource<>();
-    ds.init(User.class);
-    ds.findBy("name", "John");
-}   
+Datasource<User, Long> ds = new Datasource<>();
+ds.init(User.class);
+ds.findBy("name", "John");
 ````
 
 ## Updating Data
@@ -103,19 +86,15 @@ void main() {
 LiteStore also lets you update your saved instances. You can do it as shown below
 
 ````java
-import dev.hangalito.storage.Datasource;
+Datasource<User, Long> ds = new Datasource<>();
+ds.init(User.class);
 
-void main() {
-    Datasource<User, Long> ds = new Datasource<>();
-    ds.init(User.class);
+User user = new User();
+user.setName("John");
+ds.save(user);
 
-    User user = new User();
-    user.setName("John");
-    ds.save(user);
-
-    user.setName("Dee");
-    ds.update(user.getId(), user);
-}
+user.setName("Dee");
+ds.update(user.getId(), user);
 ````
 
 ## Deleting Data
@@ -124,14 +103,10 @@ You can delete data simply by calling the `delete` method in the `Datasource` pa
 you want to delete.
 
 ````java
-import dev.hangalito.storage.Datasource;
+Datasource<User, Long> ds = new Datasource<>();
+ds.init(User.class);
 
-void main() {
-    Datasource<User, Long> ds = new Datasource<>();
-    ds.init(User.class);
-
-    ds.findById(100L).ifPresent(user -> ds.delete(user));
-}
+ds.findById(100L).ifPresent(user -> ds.delete(user));
 ````
 
 This code snippet retrieves the user with ID of 100 and then deletes it from the datasource.

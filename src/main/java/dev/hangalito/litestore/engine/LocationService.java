@@ -1,4 +1,4 @@
-package dev.hangalito.storage;
+package dev.hangalito.litestore.engine;
 
 import java.io.File;
 import java.io.IOException;

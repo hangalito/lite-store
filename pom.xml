@@ -6,12 +6,13 @@
 
     <groupId>dev.hangalito</groupId>
     <artifactId>lite-store</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <name>Lite Store</name>
 
     <developers>
         <developer>
             <name>Bartolomeu Hangalo</name>
+            <email>bartolomeujose.manilson@gmail.com</email>
         </developer>
     </developers>
 

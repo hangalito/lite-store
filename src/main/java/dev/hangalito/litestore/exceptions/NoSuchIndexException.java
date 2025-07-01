@@ -1,6 +1,6 @@
-package dev.hangalito.exceptions;
+package dev.hangalito.litestore.exceptions;
 
-import dev.hangalito.storage.Datasource;
+import dev.hangalito.litestore.Datasource;
 
 /// Sinalizador de um índice inexistente.
 /// Esta exceção é causada nos seguintes métodos
