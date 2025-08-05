@@ -3,5 +3,6 @@ module dev.hangalito.litestore {
 
     exports dev.hangalito.litestore.annotations;
     exports dev.hangalito.litestore.exceptions;
+    exports dev.hangalito.litestore.util;
     exports dev.hangalito.litestore;
 }

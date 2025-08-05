@@ -1,4 +1,4 @@
-package dev.hangalito.litestore.engine;
+package dev.hangalito.litestore.util;
 
 import dev.hangalito.litestore.exceptions.UnsupportedStorageException;
 
