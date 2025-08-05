@@ -2,7 +2,7 @@ package dev.hangalito.litestore;
 
 import dev.hangalito.litestore.annotations.Key;
 import dev.hangalito.litestore.annotations.Storable;
-import dev.hangalito.litestore.engine.*;
+import dev.hangalito.litestore.util.*;
 import dev.hangalito.litestore.exceptions.NoSuchIndexException;
 import dev.hangalito.litestore.exceptions.UnsupportedStorageException;
 
