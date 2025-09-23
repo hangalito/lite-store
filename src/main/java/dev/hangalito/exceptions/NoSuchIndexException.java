@@ -1,19 +1,22 @@
 package dev.hangalito.exceptions;
 
-import dev.hangalito.storage.Datasource;
+/**
+ * Signals an unexisting index.
+ */
 
-/// Sinalizador de um índice inexistente.
-/// Esta exceção é causada nos seguintes métodos
-///  - {@link Datasource#findBy(String, Object)}
-///
-/// @since 1.0
-/// @author Bartolomeu Hangalo
 public class NoSuchIndexException extends Exception {
 
+    /**
+     * Constructs the exception with detailed description.
+     * @param message The detailed cause of this exception.
+     */
     public NoSuchIndexException(String message) {
         super(message);
     }
 
+    /**
+     * Constructs the exception with no message description.
+     */
     public NoSuchIndexException() {
         super();
     }

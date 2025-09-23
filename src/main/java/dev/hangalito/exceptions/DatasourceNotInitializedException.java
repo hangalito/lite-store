@@ -1,25 +1,26 @@
 package dev.hangalito.exceptions;
 
-import dev.hangalito.storage.Datasource;
-
-/// Sinalizador de uma fonte de dados inexistente.
-/// Esta exceção serã causada quando um [Datasource] para uma classe
-/// não gerenciável.
-///
-/// @since 1.0
-/// @author Bartolomeu Hangalo
+/**
+ * Signals an unexisting data source.
+ * <p>
+ * This exception will happen when a {@link dev.hangalito.storage.Datasource}
+ * is used for a non-manageable class.
+ */
 public class DatasourceNotInitializedException extends Exception {
 
+    /**
+     * Constructs the exception with a default error message.
+     */
     public DatasourceNotInitializedException() {
         super("Datasource wasn't properly initialized");
     }
 
+    /**
+     * Constructs the exception with a custom error message.
+     * @param message The detailed description of the exception.
+     */
     public DatasourceNotInitializedException(String message) {
         super(message);
-    }
-
-    public DatasourceNotInitializedException(Throwable cause) {
-        super(cause);
     }
 
 }

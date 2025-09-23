@@ -16,6 +16,12 @@ import java.io.Serializable;
  */
 public class Serializer {
     /**
+     * Default constructor
+     */
+    public Serializer() {
+    }
+
+    /**
      * Serializes a given {@link Serializable} object into a byte array.
      *
      * @param object The object of type {@code T} to be serialized. Must not be {@code null}.
@@ -26,14 +32,16 @@ public class Serializer {
      */
     public static <T extends Serializable> byte[] serialize(T object) throws IOException, UnsupportedStorageException {
         if (object == null) {
-            throw new UnsupportedStorageException("Cannot serialize a null object.");
+            throw new UnsupportedStorageException(
+                    "Cannot serialize a null object.");
         }
         try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-            try (ObjectOutputStream stream = new ObjectOutputStream(output)) {
-                stream.writeObject(object);
+            try (ObjectOutputStream stream = new ObjectOutputStream(
+                    output)) {
+                stream.writeObject(
+                        object);
                 return output.toByteArray();
             }
         }
     }
 }
-

@@ -1,3 +1,6 @@
+/**
+ * Lite store module declaration.
+ */
 module lite.store {
     requires java.base;
 
