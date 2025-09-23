@@ -4,7 +4,8 @@
 module lite.store {
     requires java.base;
 
-    exports dev.hangalito.annotations;
-    exports dev.hangalito.exceptions;
-    exports dev.hangalito.storage;
+    exports dev.hangalito.litestore.annotations;
+    exports dev.hangalito.litestore.exceptions;
+    exports dev.hangalito.litestore.storage;
+    exports dev.hangalito.litestore;
 }

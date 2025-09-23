@@ -1,6 +1,6 @@
-package dev.hangalito.storage;
+package dev.hangalito.litestore;
 
-import dev.hangalito.exceptions.UnsupportedStorageException;
+import dev.hangalito.litestore.exceptions.UnsupportedStorageException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

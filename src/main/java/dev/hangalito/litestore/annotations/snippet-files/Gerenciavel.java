@@ -1,5 +1,5 @@
-import dev.hangalito.annotations.Key;
-import dev.hangalito.annotations.Storable;
+import dev.hangalito.litestore.annotations.Key;
+import dev.hangalito.litestore.annotations.Storable;
 
 import java.io.Serializable;
 

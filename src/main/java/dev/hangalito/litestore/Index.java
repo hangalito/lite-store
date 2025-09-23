@@ -1,4 +1,4 @@
-package dev.hangalito.storage;
+package dev.hangalito.litestore;
 
 import java.io.Serial;
 import java.io.Serializable;

@@ -1,4 +1,4 @@
-package dev.hangalito.exceptions;
+package dev.hangalito.litestore.exceptions;
 
 /**
  * Signals an unexisting index.

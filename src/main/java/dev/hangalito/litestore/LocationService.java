@@ -1,4 +1,4 @@
-package dev.hangalito.storage;
+package dev.hangalito.litestore;
 
 import java.io.File;
 import java.io.IOException;
@@ -147,4 +147,3 @@ public class LocationService {
     }
 
 }
-

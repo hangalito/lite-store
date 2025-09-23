@@ -1,4 +1,4 @@
-package dev.hangalito.storage;
+package dev.hangalito.litestore;
 
 import java.util.Collection;
 import java.util.Optional;

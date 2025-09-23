@@ -29,8 +29,8 @@ To store you application data, you must annotate the classes whose instance you 
 with the **@Storable** and the primary key with **@Key**.
 
 ````java
-import dev.hangalito.annotations.Key;
-import dev.hangalito.annotations.Storable;
+import annotations.dev.hangalito.litestore.Key;
+import annotations.dev.hangalito.litestore.Storable;
 
 @Storable
 public class MyClass {
@@ -49,7 +49,7 @@ persistence-related method (save, update, delete, findAll, and findBy) will resu
 **DatasourceNotInitializedException**
 
 ````java
-import dev.hangalito.storage.Datasource;
+import storage.dev.hangalito.litestore.Datasource;
 
 void main() {
     Datasource<MyClass, Integer> ds = new Datasource<>();
@@ -66,7 +66,7 @@ You can retrieve all your data by calling the *findAll* method. This method will
 if no there is no saved data it will simply return an empty list.
 
 ````java
-import dev.hangalito.storage.Datasource;
+import storage.dev.hangalito.litestore.Datasource;
 
 void main() {
     Datasource<MyClass, Integer> ds = new Datasource<>();
@@ -81,7 +81,7 @@ To query by custom fields, say, by name on a *User* storable class, you start by
 on this field
 
 ````java
-import dev.hangalito.storage.Datasource;
+import storage.dev.hangalito.litestore.Datasource;
 
 void main() {
     Datasource<User, Long> ds = new Datasource<>();
@@ -105,7 +105,7 @@ void main() {
 LiteStore also lets you update your saved instances. You can do it as shown below
 
 ````java
-import dev.hangalito.storage.Datasource;
+import storage.dev.hangalito.litestore.Datasource;
 
 void main() {
     Datasource<User, Long> ds = new Datasource<>();
@@ -126,7 +126,7 @@ You can delete data simply by calling the `delete` method in the `Datasource` pa
 you want to delete.
 
 ````java
-import dev.hangalito.storage.Datasource;
+import storage.dev.hangalito.litestore.Datasource;
 
 void main() {
     Datasource<User, Long> ds = new Datasource<>();

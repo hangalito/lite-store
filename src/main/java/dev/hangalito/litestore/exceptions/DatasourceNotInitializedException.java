@@ -1,9 +1,11 @@
-package dev.hangalito.exceptions;
+package dev.hangalito.litestore.exceptions;
+
+import dev.hangalito.litestore.Datasource;
 
 /**
  * Signals an unexisting data source.
  * <p>
- * This exception will happen when a {@link dev.hangalito.storage.Datasource}
+ * This exception will happen when a {@link Datasource}
  * is used for a non-manageable class.
  */
 public class DatasourceNotInitializedException extends Exception {

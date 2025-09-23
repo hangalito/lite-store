@@ -1,6 +1,6 @@
-package dev.hangalito.exceptions;
+package dev.hangalito.litestore.exceptions;
 
-import dev.hangalito.annotations.Storable;
+import dev.hangalito.litestore.annotations.Storable;
 
 import java.io.Serializable;
 
