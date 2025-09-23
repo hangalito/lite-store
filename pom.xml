@@ -6,7 +6,7 @@
 
     <groupId>dev.hangalito</groupId>
     <artifactId>lite-store</artifactId>
-    <version>1.0</version>
+    <version>1.0.4</version>
     <name>lite-store</name>
     <description>A lightweight, fast, and intuitive Java library for local data persistence without SQL.</description>
     <url>https://github.com/hangalito/lite-store</url>
