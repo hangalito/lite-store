@@ -8,32 +8,55 @@ import java.io.*;
 import java.lang.reflect.Field;
 import java.util.*;
 
+/**
+ * Manages the persistence operations for a specific storable class {@code T} with a primary key of type {@code ID}.
+ * This class serves as the primary entry point for interacting with LiteStore, providing methods for CRUD operations
+ * and index management.
+ *
+ * @param <T> The type of the storable entity, which must implement {@link Serializable}.
+ * @param <ID> The type of the primary key for the storable entity, which must implement {@link Serializable} and {@link Comparable}.
+ * @author Bartolomeu Hangalo
+ * @since 1.0
+ */
 @SuppressWarnings({"unchecked"})
 public class Datasource<T extends Serializable, ID extends Serializable & Comparable<ID>> {
 
-    /// Location service instance
+    /**
+     * The singleton instance of {@link LocationService} used to determine file system locations.
+     */
     private final LocationService service;
 
-    /// The index of saved {T} entities
+    /**
+     * The in-memory index of saved {@code T} entities. Maps primary keys to {@link Index} objects.
+     */
     private Map<ID, Index> index;
 
-    ///  The class type of the entity
+    /**
+     * The {@link Class} type of the entity managed by this datasource.
+     */
     private Class<T> table;
 
-    /// The file storing the actual data
+    /**
+     * The {@link File} storing the actual serialized data for the entities.
+     */
     private File file;
 
     /**
      * Creates a new {@link Datasource} instance.
+     * Initializes the {@link LocationService}.
      */
     public Datasource() {
         this.service = LocationService.getInstance();
     }
 
     /**
-     * Initializes this datasource.
+     * Initializes this datasource for a specific entity class. This method must be called before
+     * performing any persistence-related operations (save, update, delete, findAll, findBy).
+     * It sets up the entity class, determines the data file path, and loads the primary index
+     * from storage or initializes an empty one if none exists.
      *
      * @param entityClass The class type of the entity dealt by this datasource.
+     * @throws RuntimeException if an {@link IOException} or {@link ClassNotFoundException} occurs during index loading.
      */
     public void init(Class<T> entityClass) {
         this.table = entityClass;
@@ -54,8 +77,11 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
 
     /**
      * Retrieves all saved entities into the storage.
+     * If no entities are found, an empty list is returned.
      *
-     * @return The saved entities.
+     * @return A {@link List} of all saved entities of type {@code T}.
+     * @throws IllegalStateException if the datasource has not been initialized.
+     * @throws RuntimeException if an {@link IOException} or {@link ClassNotFoundException} occurs during data retrieval.
      */
     public List<T> findAll() {
         if (index == null || file == null) {
@@ -75,7 +101,8 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
                         throw new RuntimeException(e);
                     }
                 }
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
                 throw new RuntimeException(e);
             }
         });
@@ -84,9 +111,13 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
     }
 
     /**
-     * Saves an entity into the storage.
+     * Saves an entity into the storage. The entity is serialized and appended to the data file.
+     * The primary key of the entity is extracted and an {@link Index} entry is created or updated
+     * in the in-memory index, which is then persisted to the index file.
      *
-     * @param entity The entity to be stored.
+     * @param entity The entity of type {@code T} to be stored.
+     * @throws IllegalStateException if the datasource has not been initialized.
+     * @throws RuntimeException if an {@link IOException} or {@link UnsupportedStorageException} occurs during saving.
      */
     public void save(T entity) {
         if (file == null) {
@@ -106,10 +137,12 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
     }
 
     /**
-     * Retrieves an entity instance with a corresponding key.
+     * Retrieves an entity instance with a corresponding primary key.
      *
-     * @param key The key of the entity to be retrieved.
-     * @return An instance of {@link T}, or {@code null} if no instance was found.
+     * @param key The primary key of the entity to be retrieved.
+     * @return An {@link Optional} containing the instance of {@code T} if found, or an empty {@link Optional} if no instance was found.
+     * @throws IllegalStateException if the datasource has not been initialized.
+     * @throws RuntimeException if an {@link IOException} or {@link ClassNotFoundException} occurs during retrieval.
      */
     public Optional<T> findByIndex(ID key) {
         if (file == null) {
@@ -138,6 +171,14 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
         }
     }
 
+    /**
+     * Updates an existing entity in the storage. The updated entity is serialized and appended to the data file.
+     * The {@link Index} entry for the given ID is updated to point to the new location of the serialized object.
+     *
+     * @param id The primary key of the entity to update.
+     * @param entity The updated entity of type {@code T}.
+     * @throws RuntimeException if an {@link IOException} or {@link UnsupportedStorageException} occurs during updating.
+     */
     public void update(ID id, T entity) {
         try (RandomAccessFile raf = new RandomAccessFile(this.file, "rw")) {
             raf.seek(raf.length());
@@ -154,13 +195,14 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
     }
 
     /**
-     * Tries to retrieve all entities with a given value of an attribute.
-     * The index of this field must be created before trying to look for.
+     * Retrieves all entities that have a specific value for a given field. An index for this field
+     * must have been created previously using {@link #createIndex(String)}.
      *
-     * @param field The name of the field to look into.
+     * @param field The name of the field to look into (e.g., "name").
      * @param value The value of the attribute to group into.
-     * @return All the entities with the provided value in the field.
-     * @throws NoSuchIndexException If the field trying to access wasn't previously created.
+     * @return A {@link List} of all entities of type {@code T} with the provided value in the specified field.
+     * @throws NoSuchIndexException If the field trying to access wasn't previously indexed.
+     * @throws RuntimeException if an {@link IOException} or {@link ClassNotFoundException} occurs during retrieval.
      */
     public List<T> findBy(String field, Object value) throws NoSuchIndexException {
         Map<Object, List<Index>> fieldIndex = new HashMap<>();
@@ -193,9 +235,12 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
     }
 
     /**
-     * Deletes an instance from the datasource.
+     * Deletes an instance from the datasource. This operation removes the entity's primary key
+     * from the in-memory index and persists the updated index to the index file. Note that
+     * this does not physically remove the data from the `.dat` file, only its reference from the index.
      *
-     * @param instance The instance to be deleted.
+     * @param instance The instance of type {@code T} to be deleted.
+     * @throws RuntimeException if an {@link IOException} occurs during index saving.
      */
     public void delete(T instance) {
         ID id = extractKey(instance);
@@ -204,10 +249,13 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
     }
 
     /**
-     * Create an index in a specified field of the entity.
+     * Creates a custom index on a specified field of the entity. This allows for efficient retrieval
+     * of entities based on the values of this field using {@link #findBy(String, Object)}.
      *
-     * @param name The name of the entity to index.
-     * @throws NoSuchFieldException If this field wasn't found in the entity.
+     * @param name The name of the field in the entity to index.
+     * @throws NoSuchFieldException If the specified field was not found in the entity class.
+     * @throws RuntimeException if an {@link IllegalAccessException} occurs during field access or an {@link IOException} occurs during index saving.
+     * @throws IllegalStateException if no primary key is found for a storable entity during index creation.
      */
     public void createIndex(String name) throws NoSuchFieldException {
         Field field = table.getDeclaredField(name);
@@ -217,20 +265,19 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
 
         findAll().forEach(entity -> {
             field.setAccessible(true);
-            Object index;
+            Object indexValue;
 
             try {
-                index = field.get(entity);
+                indexValue = field.get(entity);
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
 
-            fieldIndex.compute(index, (k, v) -> {
+            fieldIndex.compute(indexValue, (k, v) -> {
                 ID key = null;
                 if (v == null) {
                     v = new ArrayList<>();
                 }
-
 
                 for (Field declaredField : entity.getClass().getDeclaredFields()) {
                     if (declaredField.isAnnotationPresent(Key.class)) {
@@ -263,7 +310,10 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
     }
 
     /**
-     * Tries to save the in-memory index of the entities into the persistence storage.
+     * Saves the in-memory primary index of the entities into the persistence storage (the `.idx` file).
+     * This method is called internally after any operation that modifies the index (save, update, delete).
+     *
+     * @throws RuntimeException if an {@link IOException} occurs during index saving.
      */
     private void saveIndex() {
         try {
@@ -277,6 +327,14 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
         }
     }
 
+    /**
+     * Retrieves an entity from the data file based on its {@link Index} metadata.
+     * This is an internal helper method used by other retrieval operations.
+     *
+     * @param index The {@link Index} object containing the size and pointer of the entity.
+     * @return The deserialized entity of type {@code T}.
+     * @throws RuntimeException if an {@link IOException} or {@link ClassNotFoundException} occurs during retrieval.
+     */
     private T findByIndex(Index index) {
         try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
             byte[] buff = new byte[index.size()];
@@ -292,6 +350,15 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
         }
     }
 
+    /**
+     * Extracts the primary key from a given entity instance by looking for the field
+     * annotated with {@link Key}.
+     *
+     * @param entity The entity of type {@code T} from which to extract the key.
+     * @return The primary key of type {@code ID}.
+     * @throws RuntimeException if an {@link IllegalAccessException} occurs during field access.
+     * @throws IllegalStateException if no field annotated with {@link Key} is found in the entity.
+     */
     private ID extractKey(T entity) {
         Field[] fields = entity.getClass().getDeclaredFields();
         for (Field field : fields) {
@@ -306,7 +373,8 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
                 }
             }
         }
-        return null;
+        throw new IllegalStateException("No field annotated with @Key found in entity " + entity.getClass().getName());
     }
 
 }
+

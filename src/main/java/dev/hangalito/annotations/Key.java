@@ -7,11 +7,13 @@ import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
- * Marca um atributo de uma classe gerenciável como chave identificadora.
- * @since 1.0
+ * Marks a field within a storable class as the primary key.
+ * This annotation is used to identify the unique identifier for instances of a {@link Storable} class.
  * @author Bartolomeu Hangalo
+ * @since 1.0
  */
 @Target(FIELD)
 @Retention(RUNTIME)
 public @interface Key {
 }
+
