@@ -7,13 +7,22 @@ import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
- * Anota uma classe suscetível ao armazenamento.
- * Após anotadas as classes armazenáveis, estas devem especificar o
- * atributo que será utilizado como chave da classe. A chave é o
- * atribúto único que serve para identificar cada instância.
+ * Marks a class as storable by the LiteStore library. Classes annotated with {@code @Storable}
+ * are eligible for persistence. Such classes must also specify a primary key field using the {@link Key} annotation.
+ * The primary key serves as the unique identifier for each instance of the storable class.
  * <p>
- * Exemplo:
- * {@snippet class = Gerenciavel}
+ * Example:
+ * <pre>
+ * {@code
+ * @Storable
+ * public class MyClass {
+ *     @Key
+ *     private int id;
+ *     private String name;
+ *     // other fields, getters, and setters
+ * }
+ * }
+ * </pre>
  *
  * @author Bartolomeu Hangalo
  * @since 1.0
@@ -21,5 +30,11 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Target(TYPE)
 @Retention(RUNTIME)
 public @interface Storable {
+    /**
+     * An optional value that can be associated with the storable class. Its specific usage
+     * might be defined by the application using LiteStore.
+     * @return A string value, defaults to an empty string.
+     */
     String value() default "";
 }
+
