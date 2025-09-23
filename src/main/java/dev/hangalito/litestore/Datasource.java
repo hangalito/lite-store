@@ -101,14 +101,47 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
                         throw new RuntimeException(e);
                     }
                 }
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         });
 
         return entities;
     }
+
+    /**
+     * Retrieves an entity instance with a corresponding key.
+     *
+     * @param key The key of the entity to be retrieved.
+     * @return An instance of {@link T}, or {@code null} if no instance was found.
+     */
+    public Optional<T> findById(ID key) {
+        if (file == null) {
+            throw new IllegalStateException("Datasource not initialized");
+        }
+
+        if (!index.containsKey(key)) {
+            return Optional.empty();
+        }
+
+        try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+            Index idx = index.get(key);
+            raf.seek(idx.pointer());
+            byte[] bytes = new byte[idx.size()];
+            raf.read(bytes, 0, idx.size());
+
+            try (ByteArrayInputStream input = new ByteArrayInputStream(bytes)) {
+                try (ObjectInputStream stream = new ObjectInputStream(input)) {
+                    var object = stream.readObject();
+                    return Optional.of((T) object);
+                }
+            }
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("Unexpected exception: " + e.getLocalizedMessage());
+            throw new RuntimeException(e);
+        }
+    }
+
 
     /**
      * Saves an entity into the storage. The entity is serialized and appended to the data file.
@@ -273,30 +306,32 @@ public class Datasource<T extends Serializable, ID extends Serializable & Compar
                 throw new RuntimeException(e);
             }
 
-            fieldIndex.compute(indexValue, (k, v) -> {
-                ID key = null;
-                if (v == null) {
-                    v = new ArrayList<>();
-                }
-
-                for (Field declaredField : entity.getClass().getDeclaredFields()) {
-                    if (declaredField.isAnnotationPresent(Key.class)) {
-                        declaredField.setAccessible(true);
-                        try {
-                            key = (ID) declaredField.get(entity);
-                            break;
-                        } catch (IllegalAccessException e) {
-                            throw new RuntimeException(e);
+            fieldIndex.compute(
+                    indexValue, (k, v) -> {
+                        ID key = null;
+                        if (v == null) {
+                            v = new ArrayList<>();
                         }
-                    }
-                }
-                if (key == null) {
-                    throw new IllegalStateException("No key found for this storage entity");
-                }
-                v.add(Datasource.this.index.get(key));
 
-                return v;
-            });
+                        for (Field declaredField : entity.getClass().getDeclaredFields()) {
+                            if (declaredField.isAnnotationPresent(Key.class)) {
+                                declaredField.setAccessible(true);
+                                try {
+                                    key = (ID) declaredField.get(entity);
+                                    break;
+                                } catch (IllegalAccessException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+                        }
+                        if (key == null) {
+                            throw new IllegalStateException("No key found for this storage entity");
+                        }
+                        v.add(Datasource.this.index.get(key));
+
+                        return v;
+                    }
+            );
 
         });
 
