@@ -6,6 +6,5 @@ module lite.store {
 
     exports dev.hangalito.litestore.annotations;
     exports dev.hangalito.litestore.exceptions;
-    exports dev.hangalito.litestore.storage;
     exports dev.hangalito.litestore;
 }
