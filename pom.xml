@@ -4,9 +4,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>dev.hangalito</groupId>
+    <groupId>io.github.hangalito</groupId>
     <artifactId>lite-store</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.0</version>
     <name>lite-store</name>
     <description>A lightweight, fast, and intuitive Java library for local data persistence without SQL.</description>
     <url>https://github.com/hangalito/lite-store</url>
@@ -74,8 +74,6 @@
                     </execution>
                 </executions>
             </plugin>
-                        <!-- maven-gpg-plugin disabled for sandbox environment -->
-            <!--
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
@@ -90,7 +88,6 @@
                     </execution>
                 </executions>
             </plugin>
-            -->
             <plugin>
                 <groupId>org.sonatype.central</groupId>
                 <artifactId>central-publishing-maven-plugin</artifactId>
