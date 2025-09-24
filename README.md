@@ -63,7 +63,7 @@ void main() {
 ## Retrieving all data
 
 You can retrieve all your data by calling the *findAll* method. This method will never return null,
-if no there is no saved data it will simply return an empty list.
+if there is no saved data it will simply return an empty list.
 
 ````java
 import storage.dev.hangalito.litestore.Datasource;
