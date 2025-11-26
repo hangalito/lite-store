@@ -1,10 +1,11 @@
-<div style="text-align: center;">LiteStore</div>
+LiteStore
 ============================================================
-<div style="text-align: center; font-size: 18px">The Solution for Standalone Application Persistence</div>
+
+The Solution for Standalone Application Persistence
 ------------------------------------------------------------
 
 LiteStore is the solution for standalone application persistence. It allows you to persist your
-application-generated data on device. No SQL knowledge is required, it's all Java based.
+application-generated data on-device. No SQL knowledge is required; it's all Java-based.
 
 # Features
 
@@ -16,16 +17,16 @@ application-generated data on device. No SQL knowledge is required, it's all Jav
 
 # How it works
 
-LiteStore creates a **.dat** file with the name your persisting class in the user application data
-directory. It then creates an index of these data to facilitate the retrieval of these data.
-By default, only the primary key of the storable classes are indexed but you can also create custom
-indexes for an improved and customized querying.
+LiteStore creates a **.dat** file with the name of your persisting class in the user application data
+directory. It then creates an index of this data to facilitate the retrieval of this data.
+By default, only the primary key of the storable classes is indexed, but you can also create custom
+indexes for improved and customized querying.
 
 # Code Examples
 
 ## Preparing a class for storage
 
-To store you application data, you must annotate the classes whose instance you want to be persisted
+To store your application data, you must annotate the classes whose instances you want to be persisted
 with the **@Storable** and the primary key with **@Key**.
 
 ````java
@@ -44,7 +45,7 @@ public class MyClass {
 
 You start by initializing the datasource after its instantiation, then you pass the instance you
 want to be persisted. Note that you must initialize the datasource before calling other methods.
-By doing so you ensure that the index is loaded and you have the correct data. Calling a
+By doing so, you ensure that the index is loaded and you have the correct data. Calling a
 persistence-related method (save, update, delete, findAll, and findBy) will result in
 **DatasourceNotInitializedException**
 
